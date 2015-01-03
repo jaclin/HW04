@@ -13,9 +13,9 @@ const int SCREEN_FPS = 30;
 const int SCREEN_TICK_PER_FRAME = 1000 / SCREEN_FPS;
 int countedFrames = 0;
 
-SDL_Window* gWindow = NULL;
-SDL_Renderer* renderer = NULL;
-TTF_Font *font = NULL;
+SDL_Window* gWindow = nullptr;
+SDL_Renderer* renderer = nullptr;
+TTF_Font *font = nullptr;
 
 class Texture
 {
@@ -36,7 +36,7 @@ class Texture
 
 Texture::Texture()
 {
-    texture = NULL;
+    texture = nullptr;
     width = 0;
     height = 0;
 }
@@ -49,10 +49,10 @@ Texture::~Texture()
 bool Texture::loadFromFile(std::string path)
 {
     free();
-    SDL_Texture* newTexture = NULL;
+    SDL_Texture* newTexture = nullptr;
     SDL_Surface* loadedSurface = IMG_Load(path.c_str());
 
-    if(loadedSurface == NULL)
+    if(loadedSurface == nullptr)
     {
         printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
     }
@@ -61,7 +61,7 @@ bool Texture::loadFromFile(std::string path)
         SDL_SetColorKey(loadedSurface, SDL_TRUE, SDL_MapRGB(loadedSurface->format, 0, 0, 0));
         newTexture = SDL_CreateTextureFromSurface(renderer, loadedSurface );
 
-        if(newTexture == NULL)
+        if(newTexture == nullptr)
         {
             printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
         }
@@ -75,7 +75,7 @@ bool Texture::loadFromFile(std::string path)
     }
 
     texture = newTexture;
-    return texture != NULL;
+    return texture != nullptr;
 }
 
 bool Texture::loadFromText(std::string textureText, SDL_Color textColor)
@@ -84,14 +84,14 @@ bool Texture::loadFromText(std::string textureText, SDL_Color textColor)
 
     SDL_Surface* textSurface = TTF_RenderText_Solid(font, textureText.c_str(), textColor);
 
-    if(textSurface == NULL)
+    if(textSurface == nullptr)
     {
         printf("Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError());
     }
     else
     {
         texture = SDL_CreateTextureFromSurface(renderer, textSurface);
-        if(texture == NULL)
+        if(texture == nullptr)
         {
             printf("Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError());
         }
@@ -104,15 +104,15 @@ bool Texture::loadFromText(std::string textureText, SDL_Color textColor)
         SDL_FreeSurface(textSurface);
     }
 
-    return texture != NULL;
+    return texture != nullptr;
 }
 
 void Texture::free()
 {
-    if (texture != NULL)
+    if (texture != nullptr)
     {
         SDL_DestroyTexture(texture);
-        texture = NULL;
+        texture = nullptr;
         width = 0;
         height = 0;
     }
@@ -122,7 +122,7 @@ void Texture::render(int x, int y, SDL_Rect* clip, double angle, SDL_Point* cent
 {
     SDL_Rect renderQuad = {x, y, width, height };
 
-    if(clip != NULL)
+    if(clip != nullptr)
     {
         renderQuad.w = clip->w;
         renderQuad.h = clip->h;
@@ -257,16 +257,17 @@ class Player
 {
     public:
         static const int pRadius = 10;
+        bool start = false;
 
         Player();
         bool collisionDetection(Player* a, BulletGroup* b);
         void handleEvent(SDL_Event &e);
         void render();
         int getHits();
+        bool hasStarted();
         ~Player();
 
     private:
-        bool start = false;
         int mPosX, mPosY;
         int hits;
 };
@@ -301,18 +302,7 @@ bool Player::collisionDetection(Player* a, BulletGroup* b)
 
 void Player::handleEvent(SDL_Event &e)
 {
-    if (!start)
-    {
-        if (e.type = SDL_MOUSEBUTTONUP)
-        {
-            if(e.button.button == SDL_BUTTON_LEFT)
-            {
-                start = true;
-                mPosX = e.button.x;
-                mPosY = e.button.y;
-            }
-        }
-    }
+
 
     if (start)
     {
@@ -359,11 +349,16 @@ int Player::getHits()
 return hits;
 }
 
+bool Player::hasStarted()
+{
+ return start;
+}
+
 class Start
 {
     public:
         Start();
-        void click(SDL_Event &e);
+        void click(SDL_Event &e, Player &p);
         void render();
         int getX();
         int getY();
@@ -386,7 +381,7 @@ Start::~Start()
 {
 }
 
-void Start::click(SDL_Event &e)
+void Start::click(SDL_Event &e, Player &p)
 {
     if (e.type == SDL_MOUSEBUTTONDOWN)
     {
@@ -398,6 +393,7 @@ void Start::click(SDL_Event &e)
             if ((mouseX > getX()) && (mouseX < (getX() + start.getWidth())) && (mouseY > getY()) && (mouseY < (getY() + start.getHeight())))
             {
                 start.free();
+                p.start = true;
             }
         }
     }
@@ -577,7 +573,7 @@ int main(int argc, char* args[])
 
                 uint capTimer = SDL_GetTicks();
 
-                if (player.collisionDetection(&player, &lol) == true || player.collisionDetection(&player, &meh))
+                if (player.hasStarted() && ((player.collisionDetection(&player, &lol) == true || player.collisionDetection(&player, &meh)== true)))
                 {
                     loadScore(player.getHits());
                 }
@@ -589,7 +585,7 @@ int main(int argc, char* args[])
                         quit = true;
                     }
 
-                    s.click(e);
+                    s.click(e, player);
                     player.handleEvent(e);
                 }
 
