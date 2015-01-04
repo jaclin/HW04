@@ -11,7 +11,7 @@ const int SCREEN_HEIGHT = 480;
 const int SCREEN_FPS = 30;
 const int SCREEN_TICK_PER_FRAME = 1000 / SCREEN_FPS;
 int countedFrames = 0;
-
+uint initTimer = 0;
 
 SDL_Window* gWindow = nullptr;
 SDL_Renderer* renderer = nullptr;
@@ -144,12 +144,14 @@ int Texture::getWidth()
 bool init();
 bool loadStart();
 bool loadScore(int hits);
+bool loadGameOver();
 void close();
 double distanceSquared(int x1, int y1, int x2, int y2);
 
 Texture start;
 Texture score;
 Texture background;
+Texture gameOver;
 
 class Bullet
 {
@@ -403,7 +405,7 @@ void Start::click(SDL_Event &e, Player &p)
             {
                 start.free();
                 p.start = true;
-
+                initTimer = SDL_GetTicks();
             }
         }
     }
@@ -530,6 +532,31 @@ bool loadScore(int hits)
     return success;
 }
 
+bool loadGameOver()
+{
+    bool success = true;
+    std::string text = "Game Over!";
+    font = TTF_OpenFont("scoreboard.ttf", 32);
+
+    if(font == NULL)
+    {
+        printf("Failed to load scoreboard font! SDL_ttf Error: %s\n", TTF_GetError());
+        success = false;
+    }
+    else
+    {
+        SDL_Color textColor = {0, 0, 255};
+
+        if(!gameOver.loadFromText(text, textColor))
+        {
+            printf("Failed to render text texture!\n");
+            success = false;
+        }
+    }
+
+    return success;
+}
+
 double distanceSquared( int x1, int y1, int x2, int y2 )
 {
     int deltaX = x2 - x1;
@@ -575,20 +602,24 @@ int main(int argc, char* args[])
 
             int scrollingOffset = 0;
 
-            uint initTimer = SDL_GetTicks();
-
             while(!quit)
             {
                 loadBackground();
 
                 uint capTimer = SDL_GetTicks();
-                uint gameTimer = SDL_GetTicks() - initTimer;
-                printf("%u", gameTimer);
-                printf("\n");
-                  if (player.hasStarted() && ((player.collisionDetection(&player, &lol) == true || player.collisionDetection(&player, &meh)== true)))
-                  {
-                      loadScore(player.getHits());
-                  }
+
+                uint gameTimer = 0;
+                if (player.hasStarted())
+                {
+                    gameTimer = SDL_GetTicks() - initTimer;
+                    printf("%u", gameTimer);
+                    printf("\n");
+                }
+
+                if (player.hasStarted() && ((player.collisionDetection(&player, &lol) == true || player.collisionDetection(&player, &meh)== true)))
+                {
+                    loadScore(player.getHits());
+                }
 
                   while(SDL_PollEvent(&e) != 0)
                   {
@@ -600,7 +631,8 @@ int main(int argc, char* args[])
                       s.click(e, player);
                       player.handleEvent(e);
                   }
-                  if (gameTimer < 60000) // in milliseconds :)
+
+                  if (gameTimer <= 60000) // in milliseconds :)
                   {
                     lol.moveStraight();
                     meh.moveCircular();
@@ -623,15 +655,23 @@ int main(int argc, char* args[])
                     lol.render();
                     meh.render();
 
+
                     SDL_RenderPresent(renderer);
                     ++countedFrames;
 
                 }
                 else {
                 // Game Over code here
+                SDL_ShowCursor(1);
+                loadGameOver();
+
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                 SDL_RenderClear(renderer);
+                gameOver.render((SCREEN_WIDTH-gameOver.getWidth())/2, SCREEN_HEIGHT/2-gameOver.getHeight());
+                score.render((SCREEN_WIDTH-score.getWidth())/2,SCREEN_HEIGHT/2);
                 SDL_RenderPresent(renderer);
                 }
+
                 if( capTimer < SCREEN_TICK_PER_FRAME )
                 {
                     //Wait remaining time
