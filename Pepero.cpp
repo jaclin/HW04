@@ -144,12 +144,7 @@ int Texture::getWidth()
 bool init();  //From LazyFoo productions
 bool loadStart();
 bool loadScore(int hits);
-bool loadGameOver();
-<<<<<<< HEAD
 void close();  //From LazyFoo productions
-=======
-void close();
->>>>>>> 3440e0597e62b2331ff83c5231805f9e140d4cd0
 double distanceSquared(int x1, int y1, int x2, int y2);
 
 Texture start;
@@ -164,7 +159,7 @@ class Bullet
 
         Bullet();
         void move(int x, int y);
-        void render();
+        void render(int blue = 0xFF);
         int getX();
         int getY();
         void Destroy();
@@ -175,8 +170,8 @@ class Bullet
 
 Bullet::Bullet()
 {
-    bPosX = 0;
-    bPosY = 0;
+    bPosX = -10;
+    bPosY = -10;
 }
 
 Bullet::~Bullet()
@@ -195,9 +190,10 @@ void Bullet::move(int x, int y)
     }
 }
 
-void Bullet::render()
+void Bullet::render(int blue)
 {
-    filledCircleRGBA(renderer, bPosX, bPosY, bRadius, 0xFF,0x0,0x0,0xFF);
+    filledCircleRGBA(renderer, bPosX, bPosY, bRadius, 0xFF,0x0,blue,0xFF);
+
 }
 
 int Bullet::getX()
@@ -223,10 +219,12 @@ class BulletGroup
         BulletGroup();
         void moveHorizontal();
         void moveStraight();
+        void moveCircleOut();
+        void moveCircleIn();
         void setStraight();
         void setHorizontal();
         void setCircle();
-        void render();
+        void render(int blue = 0xFF);
         ~BulletGroup();
 };
 
@@ -277,11 +275,45 @@ void BulletGroup::setCircle(){
 
  for(auto &x:bGroup)
     {
-        x.bPosX = length * cos (angle);
+        x.bPosX = length * cos (angle) + 0;
+        x.bPosY = (length * sin (angle)) + SCREEN_HEIGHT / 2;
+        ++counter;
+        angle += angle_stepsize;
+    }
+}
+
+void BulletGroup::moveCircleOut(){
+ static int length = 0;
+ float angle = 0.0;
+ float angle_stepsize = 0.63;
+ int counter = 1;
+ for(auto &x:bGroup)
+    {
+        x.bPosX = length * cos (angle) + SCREEN_WIDTH / 2;
         x.bPosY = length * sin (angle) + SCREEN_HEIGHT / 2;
         ++counter;
         angle += angle_stepsize;
     }
+    ++length;
+    if (length > 400)
+     length = 0;
+}
+
+void BulletGroup::moveCircleIn(){
+ static int length = 200;
+ float angle = 0.0;
+ float angle_stepsize = 0.63;
+ int counter = 1;
+ for(auto &x:bGroup)
+    {
+        x.bPosX = length * cos (angle) + SCREEN_WIDTH / 2;
+        x.bPosY = length * sin (angle) + SCREEN_HEIGHT / 2;
+        ++counter;
+        angle += angle_stepsize;
+    }
+    --length;
+    if (length < 1)
+     length = 200;
 }
 
 void BulletGroup::moveStraight()
@@ -292,10 +324,10 @@ void BulletGroup::moveStraight()
     }
 }
 
-void BulletGroup::render()
+void BulletGroup::render(int blue)
 {
     for(auto &x:bGroup)
-        x.render();
+        x.render(blue);
 }
 
 class Player
@@ -312,7 +344,6 @@ class Player
         bool hasStarted();
         ~Player();
 
-    private:
         int mPosX, mPosY;
         int hits;
 };
@@ -575,7 +606,7 @@ bool loadGameOver()
     std::string text = "Game Over!";
     font = TTF_OpenFont("scoreboard.ttf", 32);
 
-    if(font == NULL)
+    if(font == nullptr)
     {
         printf("Failed to load scoreboard font! SDL_ttf Error: %s\n", TTF_GetError());
         success = false;
@@ -635,7 +666,7 @@ int main(int argc, char* args[])
             SDL_Event e;
             Start s;
             Player player;
-            BulletGroup lol, hey;
+            BulletGroup lol, hey, meh, pst, hi;
 
             int scrollingOffset = 0;
 
@@ -644,29 +675,17 @@ int main(int argc, char* args[])
                 loadBackground();
 
                 uint capTimer = SDL_GetTicks();
-<<<<<<< HEAD
-                uint gameTimer = SDL_GetTicks() - initTimer;
-                printf("%u", gameTimer);
-                printf("\n");
-                  if (player.hasStarted() && ((player.collisionDetection(&player, &lol) == true || player.collisionDetection(&player, &hey) == true)))
+                uint gameTimer = 0;
+
+                  if (player.hasStarted())
+                  {
+                   gameTimer = SDL_GetTicks() - initTimer;
+                  }
+
+                  if (player.hasStarted() && ((player.collisionDetection(&player, &lol) == true || player.collisionDetection(&player, &hey) == true || player.collisionDetection(&player, &hi) == true || player.collisionDetection(&player, &meh) == true  || player.collisionDetection(&player, &pst) == true )))
                   {
                       loadScore(player.getHits());
                   }
-=======
-
-                uint gameTimer = 0;
-                if (player.hasStarted())
-                {
-                    gameTimer = SDL_GetTicks() - initTimer;
-                    printf("%u", gameTimer);
-                    printf("\n");
-                }
-
-                if (player.hasStarted() && ((player.collisionDetection(&player, &lol) == true || player.collisionDetection(&player, &meh)== true)))
-                {
-                    loadScore(player.getHits());
-                }
->>>>>>> 3440e0597e62b2331ff83c5231805f9e140d4cd0
 
                   while(SDL_PollEvent(&e) != 0)
                   {
@@ -678,28 +697,38 @@ int main(int argc, char* args[])
                       s.click(e, player);
                       player.handleEvent(e);
                   }
-<<<<<<< HEAD
-                  if (gameTimer < 5000) // in milliseconds :)
-=======
-
-                  if (gameTimer <= 60000) // in milliseconds :)
->>>>>>> 3440e0597e62b2331ff83c5231805f9e140d4cd0
+                  if (gameTimer < 60000 ) // in milliseconds :)
                   {
+                    if (gameTimer > 1){
+                     for(static bool first = true;first;first=false){
+                         hey.setStraight();
+                       }
+                       hey.moveStraight();
 
-                    for(static bool first = true;first;first=false){
-                      lol.setCircle();
+
+                     if (gameTimer > 4000){
+                        for(static bool first = true;first;first=false){
+                         meh.setHorizontal();
+                       }
+                       meh.moveHorizontal();
+                     }
+
+                     if (gameTimer > 8000){
+                       for(static bool first = true;first;first=false){
+                         hi.setCircle();
+                       }
+                       hi.moveHorizontal();
+
+                     }
+
+                     if (gameTimer > 11000){
+                       lol.moveCircleOut();
+                     }
+
+                     if (gameTimer > 15000){
+                       pst.moveCircleIn();
+                     }
                     }
-                    lol.moveHorizontal();
-
-
-                    if (gameTimer > 4000){
-                      for(static bool first = true;first;first=false){
-                        hey.setStraight();
-                      }
-                      hey.moveStraight();
-                    }
-
-
 
                     ++scrollingOffset;
                     if(scrollingOffset > background.getHeight())
@@ -716,9 +745,11 @@ int main(int argc, char* args[])
                     player.render();
                     s.render();
                     score.render(SCREEN_WIDTH - score.getWidth(),0);
-                    lol.render();
                     hey.render();
-
+                    meh.render();
+                    pst.render(0x00);
+                    lol.render(0x00);
+                    hi.render();
 
 
                     SDL_RenderPresent(renderer);
@@ -728,14 +759,15 @@ int main(int argc, char* args[])
 
                 else {
                 // Game Over code here
-                SDL_ShowCursor(1);
-                loadGameOver();
+                 player.mPosX = 800;
+                 SDL_ShowCursor(1);
 
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                SDL_RenderClear(renderer);
-                gameOver.render((SCREEN_WIDTH-gameOver.getWidth())/2, SCREEN_HEIGHT/2-gameOver.getHeight());
-                score.render((SCREEN_WIDTH-score.getWidth())/2,SCREEN_HEIGHT/2);
-                SDL_RenderPresent(renderer);
+                 loadGameOver();
+                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                 SDL_RenderClear(renderer);
+                 gameOver.render((SCREEN_WIDTH-gameOver.getWidth())/2, SCREEN_HEIGHT/2-gameOver.getHeight());
+                 score.render((SCREEN_WIDTH-score.getWidth())/2,SCREEN_HEIGHT/2);
+                 SDL_RenderPresent(renderer);
 
                 }
 
